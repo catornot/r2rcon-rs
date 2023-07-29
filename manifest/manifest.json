@@ -1,0 +1,10 @@
+{
+	"name": "r2rcon-rs",
+	"displayname": "r2rcon-rs",
+	"dependencyName": "r2rcon-rs",
+	"description": "rcon yes",
+	"api_version": "3",
+	"version": "1.0",
+	"run_on_server": true,
+	"run_on_client": true
+}
