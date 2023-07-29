@@ -1,5 +1,8 @@
 use rrplug::prelude::*;
-use rrplug::{bindings::command::CCommand, engine_functions};
+use rrplug::{
+    bindings::{command::CCommand, entity::CBaseClient},
+    engine_functions,
+};
 use std::ffi::c_char;
 
 #[derive(Debug, Clone)]
@@ -55,5 +58,6 @@ engine_functions! {
         cbuf_add_text_type = unsafe extern "C" fn(EcommandTarget, *const c_char, CmdSource), at 0x1203B0;
         cbuf_execute = unsafe extern "C" fn(), at 0x1204B0;
         cbuf_get_current_player = unsafe extern "C" fn() -> EcommandTarget, at 0x120630;
+        client_array = *const CBaseClient, at 0x12A53F90;
     }
 }

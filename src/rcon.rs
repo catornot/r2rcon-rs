@@ -9,6 +9,8 @@ pub enum RconTask {
     Runcommand(String),
 }
 
+// this could be fun https://discord.com/channels/920776187884732556/922663696273125387/1134900622773194782
+
 const SERVERDATA_AUTH: i32 = 3;
 const SERVERDATA_EXECCOMMAND: i32 = 2;
 const SERVERDATA_AUTH_RESPONSE: i32 = 2;

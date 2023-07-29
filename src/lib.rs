@@ -1,11 +1,11 @@
 use bindings::{CmdSource, EngineFunctions, ENGINE_FUNCTIONS};
 use parking_lot::Mutex;
 use rcon::{RconServer, RconTask};
-use rrplug::{prelude::*, to_sq_string};
+use rrplug::{prelude::*, to_sq_string, bindings::entity::CBaseClient};
 use std::{
     collections::HashMap,
     env,
-    sync::mpsc::{self, Receiver, Sender},
+    sync::mpsc::{self, Receiver, Sender}, ffi::c_void,
 };
 
 pub mod bindings;
@@ -32,9 +32,9 @@ impl Plugin for RconPlugin {
                 hash_map
             });
 
-        if args.len() != VALID_RCON_ARGS.len() {
-            panic!("not all rcon cmd args entered")
-        }
+        // if args.len() != VALID_RCON_ARGS.len() {
+        //     panic!("not all rcon cmd args entered")
+        // }
 
         Self {
             rcon_tasks: Mutex::new(recv),
@@ -54,7 +54,7 @@ impl Plugin for RconPlugin {
                 .to_string(),
         ) {
             Ok(sv) => sv,
-            Err(err) => return log::info!("failied to connect to socket : {err:?}"),
+            Err(err) => return log::info!("failed to connect to socket : {err:?}"),
         };
         let rcon_send_tasks = self.rcon_send_tasks.lock();
 
@@ -67,8 +67,16 @@ impl Plugin for RconPlugin {
         }
     }
 
-    fn on_engine_load(&self, _: &EngineLoadType, dll_ptr: DLLPointer) {
+    fn on_engine_load(&self, engine: &EngineLoadType, dll_ptr: DLLPointer) {
         unsafe { EngineFunctions::try_init(&dll_ptr, &ENGINE_FUNCTIONS) };
+
+        let engine = if let EngineLoadType::Engine(engine) = *engine {
+            engine
+        } else {
+            return;
+        };
+
+        engine.register_concommand("test_cnet", test_cnet, "", 0).unwrap();
     }
 
     fn runframe(&self) {
@@ -94,3 +102,16 @@ impl Plugin for RconPlugin {
 }
 
 entry!(RconPlugin);
+
+#[rrplug::concommand]
+fn test_cnet() -> Option<()> {
+    unsafe {
+        let client: *const CBaseClient = ENGINE_FUNCTIONS.wait().client_array.add(0).as_ref()?;
+
+        let cnet_channel = client.offset(0x290) as *const c_void;
+
+        dbg!(cnet_channel);
+    }
+
+    None
+}
