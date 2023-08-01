@@ -131,7 +131,7 @@ impl RconServer {
                         _ => log::error!("{err}"),
                     }
 
-                    log::info!("terminating the connection");
+                    log::info!("terminating a connection");
                     self.connections.remove(i);
                     break;
                 }
@@ -167,8 +167,6 @@ pub fn handle_connection(
     .try_into()
     .or(Err(RconRequestError::IntCastFail))?;
 
-    log::info!("size : {size}");
-
     let mut buf = vec![0; size];
     if stream.read(&mut buf)? != size && size <= MAX_PACKET_SIZE {
         Err(RconRequestError::ReadWrongAmount)?
@@ -181,8 +179,6 @@ pub fn handle_connection(
             .or(Err(RconRequestError::VecToArrayError))?,
     );
 
-    log::info!("client_id : {client_id}");
-
     let request_type = i32::from_le_bytes(
         buf.drain(..=3)
             .collect::<Vec<u8>>()
@@ -190,11 +186,7 @@ pub fn handle_connection(
             .or(Err(RconRequestError::VecToArrayError))?,
     );
 
-    log::info!("request_type : {request_type}");
-
     let content = String::from_utf8_lossy(&buf).to_string().replace('\0', "");
-
-    log::info!("content : {content}");
 
     let (response, task) = match request_type {
         SERVERDATA_AUTH => {

@@ -1,7 +1,7 @@
 {
 	"name": "r2rcon-rs",
-	"displayname": "r2rcon-rs",
-	"dependencyName": "r2rcon-rs",
+	"displayname": "R2RCON-RS",
+	"dependencyName": "R2RCON_RS",
 	"description": "rcon yes",
 	"api_version": "3",
 	"version": "1.0",
