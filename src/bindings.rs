@@ -1,9 +1,10 @@
-use rrplug::prelude::*;
 use rrplug::{
     bindings::{command::CCommand, entity::CBaseClient},
     engine_functions,
 };
-use std::ffi::c_char;
+use std::ffi::{c_char, c_int, c_uchar, c_void};
+
+pub type CreateInterface = unsafe extern "C" fn(*const c_char, *const c_int) -> *const c_void;
 
 #[derive(Debug, Clone)]
 #[repr(C)]
@@ -52,8 +53,52 @@ pub enum EcommandTarget {
     CbufCount,
 }
 
+#[repr(C)]
+#[derive(Debug)]
+pub struct CGameConsole {
+    pub vtable: *const c_void,
+    pub initialized: bool,
+    pub console: *const CConsoleDialog,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct CConsoleDialog {
+    pub vtable: *const c_void,
+    pub unk: [c_uchar; 0x398],
+    pub console_panel: *const CConsolePanel,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct CConsolePanel {
+    pub editable_panel: EditablePanel,
+    pub iconsole_display_func: IConsoleDisplayFunc,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct EditablePanel {
+    pub vtable_editable_panel: *const c_void,
+    pub unk: [c_uchar; 0x2B0],
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct IConsoleDisplayFunc {
+    pub vtable: *const IConsoleDisplayFuncVtable,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct IConsoleDisplayFuncVtable {
+    pub color_print: *const c_void,
+    pub print: unsafe extern "C" fn(this: *const IConsoleDisplayFunc, message: *const c_char),
+    pub dprint: unsafe extern "C" fn(this: *const IConsoleDisplayFunc, message: *const c_char),
+}
+
 engine_functions! {
-    ENGINE_FUNCTIONS + EngineFunctions for PluginLoadDLL::ENGINE => {
+    ENGINE_FUNCTIONS + EngineFunctions for WhichDll::Engine => {
         ccommand_tokenize = unsafe extern "C" fn(&mut Option<CCommand>, *const c_char, CmdSource) -> bool, at 0x418380;
         cbuf_add_text_type = unsafe extern "C" fn(EcommandTarget, *const c_char, CmdSource), at 0x1203B0;
         cbuf_execute = unsafe extern "C" fn(), at 0x1204B0;

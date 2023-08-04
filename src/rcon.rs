@@ -16,6 +16,8 @@ const SERVERDATA_EXECCOMMAND: i32 = 2;
 const SERVERDATA_AUTH_RESPONSE: i32 = 2;
 const SERVERDATA_RESPONSE_VALUE: i32 = 0;
 const MAX_PACKET_SIZE: usize = 4096;
+const MIN_PACKET_SIZE: usize = 10;
+const MAX_CONTENT_SIZE: usize = MAX_PACKET_SIZE - MIN_PACKET_SIZE;
 
 #[derive(Debug, Error)]
 pub enum RconRequestError {
@@ -79,6 +81,7 @@ pub struct RconServer {
     server: TcpListener,
     connections: Vec<RconStream>,
     tasks: Vec<RconTask>,
+    cmd_buffer: Vec<String>,
 }
 
 impl RconServer {
@@ -92,12 +95,28 @@ impl RconServer {
             server,
             connections: Vec::new(),
             tasks: Vec::new(),
+            cmd_buffer: Vec::new(),
         };
 
         Ok(rcon_server)
     }
 
-    pub fn run(&mut self) -> Option<Vec<RconTask>> {
+    pub fn run(&mut self, new_console_line: Option<String>) -> Option<Vec<RconTask>> {
+        if let Some(line) = new_console_line {
+            let line_size = line.len();
+            let mut buffer_size = 0;
+
+            for bline in self.cmd_buffer.drain(..).rev().collect::<Vec<String>>() {
+                buffer_size += bline.len();
+                if buffer_size + line_size > MAX_CONTENT_SIZE {
+                    break;
+                }
+
+                self.cmd_buffer.insert(0, bline);
+            }
+            self.cmd_buffer.push(line);
+        }
+
         match self.server.accept() {
             Ok((conn, addr)) => match conn.set_nonblocking(true) {
                 Ok(_) => {
@@ -116,7 +135,7 @@ impl RconServer {
         }
 
         for i in 0..self.connections.len() {
-            match handle_connection(&mut self.connections[i], &self.password) {
+            match handle_connection(&mut self.connections[i], &self.password, &self.cmd_buffer) {
                 Ok(maybe_task) => {
                     if let Some(task) = maybe_task {
                         self.tasks.push(task)
@@ -149,6 +168,7 @@ impl RconServer {
 pub fn handle_connection(
     conn: &mut RconStream,
     password: &str,
+    cmd_buffer: &[String],
 ) -> Result<Option<RconTask>, RconRequestError> {
     let stream = &mut conn.stream;
 
@@ -225,7 +245,7 @@ pub fn handle_connection(
                 RconResponse {
                     id: conn.id,
                     ty: SERVERDATA_RESPONSE_VALUE,
-                    content: String::from("uh idk idk how to read console send help"),
+                    content: cmd_buffer.iter().cloned().collect(),
                 },
                 Some(RconTask::Runcommand(content)),
             )
