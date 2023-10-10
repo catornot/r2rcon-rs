@@ -24,14 +24,14 @@ pub enum RconRequestError {
     #[error("invalid vec length; converstion failed")]
     VecToArrayError,
 
-    #[error("invalid request type")]
-    InvalidRequestType,
+    #[error("invalid request type {0}")]
+    InvalidRequestType(i32),
 
     #[error("a cast failed")]
     IntCastFail,
 
-    #[error("read the wrong amount of bytes out of a stream")]
-    ReadWrongAmount,
+    #[error("read the wrong amount of bytes out of a stream {MAX_CONTENT_SIZE} got {0}")]
+    ReadWrongAmount(usize),
 
     #[error("the connect client provided a invalid id to run a command which was {0}")]
     InvalidClientID(i32),
@@ -151,7 +151,7 @@ impl RconServer {
                     }
 
                     log::info!("terminating a connection");
-                    self.connections.remove(i);
+                    self.connections.remove(i); // this doesn't seam to prevent future connections from the same connection O_o
                     break;
                 }
             }
@@ -173,8 +173,9 @@ pub fn handle_connection(
     let stream = &mut conn.stream;
 
     let mut size_buf = vec![0; 4];
-    if stream.read(&mut size_buf)? != 4 {
-        Err(RconRequestError::ReadWrongAmount)?
+    let bytes_read = stream.read(&mut size_buf)?;
+    if bytes_read != 4 {
+        Err(RconRequestError::ReadWrongAmount(bytes_read))?
     }
 
     let size = i32::from_le_bytes(
@@ -188,8 +189,10 @@ pub fn handle_connection(
     .or(Err(RconRequestError::IntCastFail))?;
 
     let mut buf = vec![0; size];
-    if stream.read(&mut buf)? != size && size <= MAX_PACKET_SIZE {
-        Err(RconRequestError::ReadWrongAmount)?
+
+    let bytes_read = stream.read(&mut buf)?;
+    if bytes_read != size && size <= MAX_PACKET_SIZE {
+        Err(RconRequestError::ReadWrongAmount(bytes_read))?
     }
 
     let client_id = i32::from_le_bytes(
@@ -251,7 +254,7 @@ pub fn handle_connection(
                 Some(RconTask::Runcommand(content)),
             )
         }
-        _ => Err(RconRequestError::InvalidRequestType)?,
+        request_num => Err(RconRequestError::InvalidRequestType(request_num))?,
     };
 
     let buf: Vec<u8> = response.into();
