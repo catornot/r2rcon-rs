@@ -73,7 +73,7 @@ impl Into<Vec<u8>> for RconResponse {
 
 pub struct RconStream {
     pub stream: TcpStream,
-    pub id: i32,
+    pub auth: bool,
 }
 
 pub struct RconServer {
@@ -123,7 +123,7 @@ impl RconServer {
                     log::info!("connection created with {addr:?}");
                     self.connections.push(RconStream {
                         stream: conn,
-                        id: -1,
+                        auth: false,
                     })
                 }
                 Err(err) => log::error!("failed to connect to a stream: {err}"),
@@ -211,7 +211,7 @@ pub fn handle_connection(
     let (response, task) = match request_type {
         SERVERDATA_AUTH => {
             if content == password {
-                conn.id = client_id;
+                conn.auth = true;
 
                 log::info!("auth successful");
 
@@ -225,6 +225,7 @@ pub fn handle_connection(
                 )
             } else {
                 log::warn!("auth failed");
+                conn.auth = false;
 
                 (
                     RconResponse {
@@ -237,13 +238,13 @@ pub fn handle_connection(
             }
         }
         SERVERDATA_EXECCOMMAND => {
-            if conn.id == -1 {
+            if conn.auth {
                 Err(RconRequestError::InvalidClientID(client_id))?
             }
 
             (
                 RconResponse {
-                    id: conn.id,
+                    id: client_id,
                     ty: SERVERDATA_RESPONSE_VALUE,
                     content: cmd_buffer.iter().cloned().collect(),
                 },
