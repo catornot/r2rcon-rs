@@ -238,7 +238,7 @@ pub fn handle_connection(
             }
         }
         SERVERDATA_EXECCOMMAND => {
-            if conn.auth {
+            if !conn.auth {
                 Err(RconRequestError::InvalidClientID(client_id))?
             }
 
