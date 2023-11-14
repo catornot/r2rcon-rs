@@ -2,7 +2,9 @@ use bindings::{CmdSource, EngineFunctions, ENGINE_FUNCTIONS};
 use console_hook::{hook_console_print, hook_write_console};
 use parking_lot::Mutex;
 use rcon::{RconServer, RconTask};
-use rrplug::{bindings::entity::CBaseClient, mid::engine::WhichDll, prelude::*, to_sq_string};
+use rrplug::{
+    bindings::class_types::client::CClient, mid::engine::WhichDll, prelude::*, to_c_string,
+};
 use std::{
     collections::HashMap,
     env,
@@ -22,7 +24,6 @@ pub struct RconPlugin {
     rcon_send_tasks: Mutex<Sender<RconTask>>, // mutex is not needed but it must sync so clone on each thread
     console_sender: Mutex<Sender<String>>,
     console_recv: Mutex<Receiver<String>>,
-    rcon_args: HashMap<String, String>,
 }
 
 impl Plugin for RconPlugin {
@@ -38,54 +39,25 @@ impl Plugin for RconPlugin {
                 hash_map
             });
 
+        std::thread::spawn(move || _ = run_rcon(args));
+
         Self {
             rcon_tasks: Mutex::new(recv),
             rcon_send_tasks: Mutex::new(sender),
-            rcon_args: args,
             console_sender: Mutex::new(console_sender),
             console_recv: Mutex::new(console_recv),
         }
     }
 
-    fn main(&self) {
-        let mut server = match RconServer::try_new(
-            self.rcon_args
-                .get(VALID_RCON_ARGS[0])
-                .expect("a rcon cmd wasn't present"),
-            self.rcon_args
-                .get(VALID_RCON_ARGS[1])
-                .expect("a rcon cmd wasn't present")
-                .to_string(),
-        ) {
-            Ok(sv) => sv,
-            Err(err) => return log::info!("failed to connect to socket : {err:?}"),
-        };
-
-        hook_write_console();
-
-        let rcon_send_tasks = self.rcon_send_tasks.lock();
-        let console_recv = self.console_recv.lock();
-
-        loop {
-            let new_console_line = console_recv.try_recv().ok();
-
-            if let Some(tasks) = server.run(new_console_line) {
-                tasks
-                    .into_iter()
-                    .for_each(|task| rcon_send_tasks.send(task).expect("failed to send tasks"))
-            }
-        }
-    }
-
-    fn on_dll_load(&self, engine: &PluginLoadDLL, dll_ptr: &DLLPointer) {
+    fn on_dll_load(&self, engine: Option<&EngineData>, dll_ptr: &DLLPointer) {
         unsafe { EngineFunctions::try_init(dll_ptr, &ENGINE_FUNCTIONS) };
 
         if let WhichDll::Client = dll_ptr.which_dll() {
             let addr = dll_ptr.get_dll_ptr() as isize;
-            std::thread::spawn( move || _ = hook_console_print(addr) );
+            std::thread::spawn(move || _ = hook_console_print(addr));
         }
 
-        let engine = if let PluginLoadDLL::Engine(engine) = *engine {
+        let engine = if let Some(engine) = engine {
             engine
         } else {
             return;
@@ -106,7 +78,7 @@ impl Plugin for RconPlugin {
                 RconTask::Runcommand(cmd) => unsafe {
                     log::info!("executing command : {cmd}");
 
-                    let cmd = to_sq_string!(cmd);
+                    let cmd = to_c_string!(cmd);
                     (funcs.cbuf_add_text_type)(
                         (funcs.cbuf_get_current_player)(),
                         cmd.as_ptr(),
@@ -117,14 +89,43 @@ impl Plugin for RconPlugin {
         }
     }
 }
-// WriteConsoleA use this for console reading
+
+fn run_rcon(rcon_args: HashMap<String, String>) -> Option<std::convert::Infallible> {
+    let mut server = match RconServer::try_new(
+        rcon_args.get(VALID_RCON_ARGS[0])?,
+        rcon_args.get(VALID_RCON_ARGS[1])?.to_string(),
+    ) {
+        Ok(sv) => sv,
+        Err(err) => {
+            log::info!("failed to connect to socket : {err:?}");
+            return None;
+        }
+    };
+
+    hook_write_console();
+
+    let rcon = PLUGIN.wait();
+
+    let rcon_send_tasks = rcon.rcon_send_tasks.lock();
+    let console_recv = rcon.console_recv.lock();
+
+    loop {
+        let new_console_line = console_recv.try_recv().ok();
+
+        if let Some(tasks) = server.run(new_console_line) {
+            tasks
+                .into_iter()
+                .for_each(|task| rcon_send_tasks.send(task).expect("failed to send tasks"))
+        }
+    }
+}
 
 entry!(RconPlugin);
 
 #[rrplug::concommand]
 fn test_cnet() -> Option<()> {
     unsafe {
-        let client: *const CBaseClient = ENGINE_FUNCTIONS.wait().client_array.add(0).as_ref()?;
+        let client: *const CClient = ENGINE_FUNCTIONS.wait().client_array.add(0).as_ref()?;
 
         let cnet_channel = client.offset(0x290) as *const c_void;
 

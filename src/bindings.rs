@@ -1,6 +1,6 @@
 use rrplug::{
-    bindings::{command::CCommand, entity::CBaseClient},
-    engine_functions,
+    bindings::{class_types::client::CClient, cvar::command::CCommand},
+    offset_functions,
 };
 use std::ffi::{c_char, c_int, c_uchar, c_void};
 
@@ -97,12 +97,12 @@ pub struct IConsoleDisplayFuncVtable {
     pub dprint: unsafe extern "C" fn(this: *const IConsoleDisplayFunc, message: *const c_char),
 }
 
-engine_functions! {
+offset_functions! {
     ENGINE_FUNCTIONS + EngineFunctions for WhichDll::Engine => {
-        ccommand_tokenize = unsafe extern "C" fn(&mut Option<CCommand>, *const c_char, CmdSource) -> bool, at 0x418380;
-        cbuf_add_text_type = unsafe extern "C" fn(EcommandTarget, *const c_char, CmdSource), at 0x1203B0;
-        cbuf_execute = unsafe extern "C" fn(), at 0x1204B0;
-        cbuf_get_current_player = unsafe extern "C" fn() -> EcommandTarget, at 0x120630;
-        client_array = *const CBaseClient, at 0x12A53F90;
+        ccommand_tokenize = unsafe extern "C" fn(&mut Option<CCommand>, *const c_char, CmdSource) -> bool where offset(0x418380);
+        cbuf_add_text_type = unsafe extern "C" fn(EcommandTarget, *const c_char, CmdSource) where offset(0x1203B0);
+        cbuf_execute = unsafe extern "C" fn() where offset(0x1204B0);
+        cbuf_get_current_player = unsafe extern "C" fn() -> EcommandTarget where offset(0x120630);
+        client_array = *const CClient where offset(0x12A53F90);
     }
 }
