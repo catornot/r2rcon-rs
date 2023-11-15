@@ -9,8 +9,8 @@ rcon will pull configs from commandline args.
 
 | **command line arg** | **value**    |
 | :------------------: | :----------: |
-| rcon_ip_port         | ip:port      |
-| rcon_password        | ascii string |
+| `rcon_ip_port`       | ip:port      |
+| `rcon_password`      | ascii string |
 
 if any of these are missed the plugin will panic :p
 
