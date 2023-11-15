@@ -2,6 +2,19 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+  # Ensure correct Rust code formatting
+  formatting:
+    name: format-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+          components: rustfmt
+      - name: Format check
+        run: cargo fmt --all -- --check
+
   # Build plugin
   build:
     runs-on: windows-2022
