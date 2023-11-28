@@ -14,7 +14,6 @@ jobs:
           components: rustfmt
       - name: Format check
         run: |
-          rustup install rustfmt
           rustup add rustfmt
           cargo fmt --all -- --check
 
