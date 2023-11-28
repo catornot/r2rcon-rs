@@ -13,7 +13,10 @@ jobs:
           toolchain: nightly
           components: rustfmt
       - name: Format check
-        run: cargo fmt --all -- --check
+        run: |
+          rustup install rustfmt
+          rustup add rustfmt
+          cargo fmt --all -- --check
 
   # Build plugin
   build:
