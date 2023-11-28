@@ -22,7 +22,7 @@ static_detour! {
 pub fn hook_write_console() {
     unsafe {
         if !std::env::args().any(|arg| arg == "-dedicated") {
-            log::info!("this isn't a dedicated server; not hooking WriteConsoleA");
+            log::warn!("this isn't a dedicated server; not hooking WriteConsoleA");
             return;
         }
 
@@ -42,7 +42,7 @@ pub fn hook_write_console() {
 
 pub fn hook_console_print(addr: isize) -> Option<()> {
     unsafe {
-        if PLUGIN.wait().console_recv.try_lock().is_some() {
+        if PLUGIN.wait().server.is_none() {
             log::warn!("rcon not running -> no Print hook");
             return None;
         }
