@@ -62,10 +62,6 @@ impl Plugin for RconPlugin {
         } else {
             return;
         };
-
-        engine
-            .register_concommand("test_cnet", test_cnet, "", 0)
-            .unwrap();
     }
 
     fn runframe(&self) {
@@ -121,16 +117,3 @@ fn run_rcon(rcon_args: HashMap<String, String>) -> Option<std::convert::Infallib
 }
 
 entry!(RconPlugin);
-
-#[rrplug::concommand]
-fn test_cnet() -> Option<()> {
-    unsafe {
-        let client: *const CClient = ENGINE_FUNCTIONS.wait().client_array.add(0).as_ref()?;
-
-        let cnet_channel = client.offset(0x290) as *const c_void;
-
-        dbg!(cnet_channel);
-    }
-
-    None
-}
