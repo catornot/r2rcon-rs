@@ -1,2 +1,4 @@
 [toolchain]
 channel = "nightly"
+
+# note run rustup component add rust-analyzer
