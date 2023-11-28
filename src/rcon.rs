@@ -1,8 +1,11 @@
+use rrplug::to_c_string;
 use std::{
     io::{self, Read, Write},
     net::{TcpListener, TcpStream},
 };
 use thiserror::Error;
+
+use crate::bindings::{CmdSource, ENGINE_FUNCTIONS};
 
 #[derive(Debug, Clone)]
 pub enum RconTask {
@@ -85,13 +88,13 @@ pub struct RconServer {
 }
 
 impl RconServer {
-    pub fn try_new(bind_ip: &str, password: String) -> Result<Self, std::io::Error> {
+    pub fn try_new(bind_ip: &str, password: impl Into<String>) -> Result<Self, std::io::Error> {
         let server = TcpListener::bind(bind_ip)?;
 
         server.set_nonblocking(true)?;
 
         let rcon_server = Self {
-            password,
+            password: password.into(),
             server,
             connections: Vec::new(),
             tasks: Vec::new(),
@@ -244,14 +247,41 @@ pub fn handle_connection(
             if !conn.auth {
                 Err(RconRequestError::InvalidClientID(client_id))?
             }
+            log::info!("executing command : {content}");
+
+            let cmd = to_c_string!(content);
+            let funcs = ENGINE_FUNCTIONS.wait();
+            unsafe {
+                (funcs.cbuf_add_text_type)(
+                    (funcs.cbuf_get_current_player)(),
+                    cmd.as_ptr(),
+                    CmdSource::Code,
+                );
+
+                (funcs.cbuf_execute)() // execute the buffer rn since we want the results immediately
+            }
+
+            let mut response = String::new();
+            while let Some(console_out) = crate::PLUGIN
+                .get()
+                .unwrap()
+                .console_recv
+                .lock()
+                .try_recv()
+                .ok()
+            {
+                response += &console_out;
+            }
 
             (
                 RconResponse {
                     id: client_id,
                     ty: SERVERDATA_RESPONSE_VALUE,
-                    content: cmd_buffer.iter().cloned().collect(),
+                    // content: cmd_buffer.iter().cloned().collect(),
+                    content: response,
                 },
-                Some(RconTask::Runcommand(content)),
+                // Some(RconTask::Runcommand(content)),
+                None,
             )
         }
         request_num => Err(RconRequestError::InvalidRequestType(request_num))?,
