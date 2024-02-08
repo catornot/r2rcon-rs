@@ -1,4 +1,4 @@
-use rrplug::to_c_string;
+use rrplug::mid::utils::{to_cstring, try_cstring};
 use std::{
     io::{self, Read, Write},
     net::{TcpListener, TcpStream},
@@ -104,7 +104,7 @@ impl RconServer {
     }
 
     pub fn run(&mut self) {
-        while let Some(_) = self.console.next_line_catpure() {} // string allocation could be remove
+        while self.console.next_line_catpure().is_some() {} // string allocation could be remove
 
         match self.server.accept() {
             Ok((conn, addr)) => match conn.set_nonblocking(true) {
@@ -253,7 +253,8 @@ fn parse_response(
             }
             log::info!("executing command : {content}");
 
-            let cmd = to_c_string!(content);
+            let cmd = try_cstring(&content)
+                .unwrap_or_else(|_| to_cstring(content.replace('\0', "").as_str()));
             let funcs = ENGINE_FUNCTIONS.wait();
             unsafe {
                 (funcs.cbuf_add_text_type)(

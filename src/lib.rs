@@ -22,7 +22,14 @@ pub struct RconPlugin {
 }
 
 impl Plugin for RconPlugin {
-    fn new(_: &PluginData) -> Self {
+    const PLUGIN_INFO: PluginInfo = PluginInfo::new(
+        "r2rcon-rs\0",
+        "R2RCON_RS\0",
+        "R2RCONRS\0",
+        PluginContext::all(),
+    );
+
+    fn new(_reloaded: bool) -> Self {
         let (console_sender, console_recv) = mpsc::channel();
 
         let rcon_args = env::args()
@@ -44,7 +51,7 @@ impl Plugin for RconPlugin {
                 break 'start_server;
             };
 
-            server = RconServer::try_new(&bind_ip, password, console_recv)
+            server = RconServer::try_new(bind_ip, password, console_recv)
                 .map_err(|err| log::info!("failed to connect to socket : {err:?}"))
                 .map(|s| {
                     hook_write_console();
@@ -59,7 +66,7 @@ impl Plugin for RconPlugin {
         }
     }
 
-    fn on_dll_load(&self, _: Option<&EngineData>, dll_ptr: &DLLPointer) {
+    fn on_dll_load(&self, _: Option<&EngineData>, dll_ptr: &DLLPointer, _token: EngineToken) {
         unsafe { EngineFunctions::try_init(dll_ptr, &ENGINE_FUNCTIONS) };
 
         if let WhichDll::Client = dll_ptr.which_dll() {
@@ -68,7 +75,7 @@ impl Plugin for RconPlugin {
         }
     }
 
-    fn runframe(&self) {
+    fn runframe(&self, _token: EngineToken) {
         _ = self.server.as_ref().map(|s| s.lock().run());
     }
 }
