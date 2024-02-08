@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rrplug = { git = "https://github.com/R2NorthstarTools/rrplug.git", rev = "fe7dc7c8324cffdf50618a158f5b56e33892b315" }
+rrplug = { git = "https://github.com/R2NorthstarTools/rrplug.git", rev = "1a4b6bd1031c3fcaa3d4890f2d454ad3b1807358" }
 once_cell = "1.18.0"
 log = "0.4.19"
 parking_lot = "0.12.1"
