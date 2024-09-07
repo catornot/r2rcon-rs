@@ -23,9 +23,9 @@ pub struct RconPlugin {
 
 impl Plugin for RconPlugin {
     const PLUGIN_INFO: PluginInfo = PluginInfo::new(
-        "r2rcon-rs\0",
-        "R2RCON_RS\0",
-        "R2RCONRS\0",
+        c"r2rcon-rs",
+        c"R2RCON_RS",
+        c"R2RCONRS",
         PluginContext::all(),
     );
 
