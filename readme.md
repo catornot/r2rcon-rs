@@ -17,7 +17,7 @@ rcon will pull configs from commandline args.
 NorthstarLauncher.exe -dedicated -multiple rcon_ip_port 127.0.0.1:27015 rcon_password changeme
 ```
 
-if any of these are missed the plugin will panic :p
+if any of these are missed the plugin won't work :p
 
 after it works just connect with a rcon client
 

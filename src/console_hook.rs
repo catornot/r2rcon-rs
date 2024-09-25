@@ -1,3 +1,5 @@
+#![allow(clippy::missing_transmute_annotations)]
+
 use crate::{
     bindings::{CGameConsole, CreateInterface, IConsoleDisplayFunc},
     exports::PLUGIN,

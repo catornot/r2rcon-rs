@@ -53,9 +53,8 @@ impl Plugin for RconPlugin {
 
             server = RconServer::try_new(bind_ip, password, console_recv)
                 .map_err(|err| log::info!("failed to connect to socket : {err:?}"))
-                .map(|s| {
+                .inspect(|_| {
                     hook_write_console();
-                    s
                 })
                 .ok();
         }
