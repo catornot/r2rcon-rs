@@ -4,6 +4,7 @@ use parking_lot::Mutex;
 use rcon::RconServer;
 use rrplug::{mid::engine::WhichDll, prelude::*};
 use std::{
+    cell::RefCell,
     collections::HashMap,
     env,
     sync::mpsc::{self, Sender},
@@ -18,7 +19,7 @@ const VALID_RCON_ARGS: [&str; 2] = ["rcon_ip_port", "rcon_password"];
 
 pub struct RconPlugin {
     console_sender: Mutex<Sender<String>>,
-    server: Option<Mutex<RconServer>>,
+    server: Option<EngineGlobal<RefCell<RconServer>>>,
 }
 
 impl Plugin for RconPlugin {
@@ -61,7 +62,7 @@ impl Plugin for RconPlugin {
 
         Self {
             console_sender: Mutex::new(console_sender),
-            server: server.map(|s| s.into()),
+            server: server.map(|s| EngineGlobal::new(RefCell::new(s))),
         }
     }
 
@@ -74,8 +75,11 @@ impl Plugin for RconPlugin {
         }
     }
 
-    fn runframe(&self, _token: EngineToken) {
-        _ = self.server.as_ref().map(|s| s.lock().run());
+    fn runframe(&self, token: EngineToken) {
+        _ = self
+            .server
+            .as_ref()
+            .map(|s| s.get(token).borrow_mut().run());
     }
 }
 

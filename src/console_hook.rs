@@ -103,8 +103,11 @@ fn print_hook(this: *const IConsoleDisplayFunc, message: *const c_char) {
         "] " => {}
         "\n" => {}
         _ => {
-            if let Some(plugin) = PLUGIN.get() {
-                _ = plugin.console_sender.lock().send(line);
+            if let Some(lock) = PLUGIN
+                .get()
+                .and_then(|plugin| plugin.console_sender.try_lock())
+            {
+                _ = lock.send(line);
             }
         }
     }
@@ -133,8 +136,11 @@ fn write_console_hook(
         .last()
         .unwrap_or_default();
 
-    if let Some(plugin) = PLUGIN.get() {
-        _ = plugin.console_sender.lock().send(cmd_output.to_string());
+    if let Some(lock) = PLUGIN
+        .get()
+        .and_then(|plugin| plugin.console_sender.try_lock())
+    {
+        _ = lock.send(cmd_output.to_string());
     }
 
     unsafe {
