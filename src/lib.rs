@@ -2,7 +2,7 @@ use bindings::{EngineFunctions, ENGINE_FUNCTIONS};
 use console_hook::{hook_console_print, hook_write_console};
 use parking_lot::Mutex;
 use rcon::RconServer;
-use rrplug::{mid::engine::WhichDll, prelude::*};
+use rrplug::{bindings::plugin_abi::PluginColor, mid::engine::WhichDll, prelude::*};
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -15,7 +15,12 @@ pub mod console;
 pub mod console_hook;
 pub mod rcon;
 
-const VALID_RCON_ARGS: [&str; 2] = ["rcon_ip_port", "rcon_password"];
+const VALID_RCON_ARGS: [&str; 4] = [
+    "rcon_ip_port",
+    "rcon_password",
+    "-rcon_ip_port",
+    "-rcon_password",
+];
 
 pub struct RconPlugin {
     console_sender: Mutex<Sender<String>>,
@@ -23,11 +28,16 @@ pub struct RconPlugin {
 }
 
 impl Plugin for RconPlugin {
-    const PLUGIN_INFO: PluginInfo = PluginInfo::new(
+    const PLUGIN_INFO: PluginInfo = PluginInfo::new_with_color(
         c"r2rcon-rs",
         c"R2RCON_RS",
         c"R2RCONRS",
         PluginContext::all(),
+        PluginColor {
+            red: 105,
+            green: 255,
+            blue: 71,
+        },
     );
 
     fn new(_reloaded: bool) -> Self {
@@ -45,8 +55,12 @@ impl Plugin for RconPlugin {
 
         'start_server: {
             let (Some(bind_ip), Some(password)) = (
-                rcon_args.get(VALID_RCON_ARGS[0]),
-                rcon_args.get(VALID_RCON_ARGS[1]),
+                rcon_args
+                    .get(VALID_RCON_ARGS[0])
+                    .or_else(|| rcon_args.get(VALID_RCON_ARGS[2])),
+                rcon_args
+                    .get(VALID_RCON_ARGS[1])
+                    .or_else(|| rcon_args.get(VALID_RCON_ARGS[3])),
             ) else {
                 log::error!("the rcon args that were provided are invalid!");
                 break 'start_server;
