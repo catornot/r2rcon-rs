@@ -39,3 +39,5 @@ jobs:
           path: |
             target/release/*.dll
             target/release/*.pdb
+            target/x86_64-pc-windows-msvc/release/*.dll
+            target/x86_64-pc-windows-msvc/release/*.pdb
