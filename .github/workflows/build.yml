@@ -7,7 +7,7 @@ jobs:
     name: format-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: nightly-2023-08-24
@@ -21,19 +21,19 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: nightly
       - name: Build
         run: |
-          cargo build --release --verbose
+          cargo build --release --verbose --target x86_64-pc-windows-msvc 
       - name: Extract Short Commit Hash
         id: extract
         shell: bash
         run: echo commit=$(git rev-parse --short HEAD) >> $GITHUB_OUTPUT
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: r2rcon-rs-${{ steps.extract.outputs.commit }}
           path: |
